@@ -28,6 +28,17 @@ const startServer = async () => {
     console.log(
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
+
+
+    app.get('/test', (req,res) => {
+        res.send('Hello from test endpoint !')
+    })
+
+
+
+
+
+
     app.listen(PORT, () => {
       console.log(`Listening on PORT: ${PORT}`);
     });
