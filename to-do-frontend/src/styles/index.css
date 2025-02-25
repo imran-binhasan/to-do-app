@@ -125,3 +125,9 @@
     font-family: "Outfit", serif;
   }
 }
+
+@layer components {
+  .error {
+    @apply text-red-500 ;
+  }
+}
