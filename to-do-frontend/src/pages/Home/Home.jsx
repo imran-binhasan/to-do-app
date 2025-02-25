@@ -1,8 +1,8 @@
 
 const Home = () => {
     return (
-        <div>
-            <p>Hello</p>
+        <div className="h-[60vh] border">
+            <p>Home</p>
         </div>
     );
 };
