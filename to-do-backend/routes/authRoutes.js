@@ -2,9 +2,14 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const speakeasy = require("speakeasy");
 const nodemailer = require("nodemailer");
-const jwt = require("jwt");
+const jwt = require("jsonwebtoken");
 const User = require("../models/User");
-
+const {
+  googleAuth,
+  googleAuthCallback,
+  logoutUser,
+} = require("../controllers/authController");
+const passport = require("passport");
 const router = express.Router();
 
 const transporter = nodemailer.createTransport({
@@ -96,5 +101,18 @@ router.post("/verify-2f", async (req, res) => {
     res.status(500).json({ message: "Server error" });
   }
 });
+
+// Google OAuth Login
+router.get("/google", googleAuth);
+
+// Google OAuth Callback
+router.get(
+  "/google/callback",
+  passport.authenticate("google", { failureRedirect: "/login", session: true }),
+  googleAuthCallback
+);
+
+// Logout
+router.get('/logout', logoutUser);
 
 module.exports = router;

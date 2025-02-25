@@ -3,12 +3,23 @@ const cors = require("cors");
 const cookieParser = require("cookie-parser");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
+const jwt = require('jsonwebtoken')
 dotenv.config();
+const session = require('express-session');
+const passport = require('passport');
+const authRoutes = require('./routes/authRoutes');
+const protectedRoutes = require('./routes/protectedRoutes')
+require('./config/passport')
 
 const app = express();
+
+// Middleware List
 app.use(express.json());
 app.use(cors());
 app.use(cookieParser());
+app.use(session({secret:process.env.SESSION_SECRET,resave:false,saveUninitialized:false,cookie:{secure:false}}));
+app.use(passport.initialize());
+app.use(passport.session());
 
 const PORT = process.env.PORT || 4000;
 
@@ -29,10 +40,13 @@ const startServer = async () => {
       "Pinged your deployment. You successfully connected to MongoDB!"
     );
 
-
+    // Routes
     app.get('/test', (req,res) => {
         res.send('Hello from test endpoint !')
     })
+
+    app.use('/api/auth', authRoutes);
+    app.use('/api/protected', protectedRoutes);
 
 
 
