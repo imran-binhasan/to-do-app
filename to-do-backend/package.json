@@ -1,7 +1,7 @@
 {
   "name": "to-do-backend",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "server.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -21,6 +21,7 @@
     "nodemailer": "^6.10.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
+    "qrcode": "^1.5.4",
     "speakeasy": "^2.0.0"
   }
 }

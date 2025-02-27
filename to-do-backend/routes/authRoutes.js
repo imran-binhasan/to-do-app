@@ -12,15 +12,17 @@ const {
 const passport = require("passport");
 const router = express.Router();
 
+// Nodemailer transporter setup
 const transporter = nodemailer.createTransport({
-  service: "gmail",
+  service: 'gmail',
   auth: {
-    user: process.env.MAIL_USER,
-    password: process.env.MAIL_PASSWORD,
+    user: process.env.MAIL_USER, // Gmail email
+    pass: process.env.MAIL_APP_PASSWORD, // App-specific password
   },
 });
 
-// User Registraion
+
+// **REGISTER USER**
 router.post("/register", async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -28,35 +30,68 @@ router.post("/register", async (req, res) => {
     if (existingUser) {
       return res.status(400).json({ message: "User already exists" });
     }
-    const hashedPassword = await bcrypt.hash(password, 12);
-    const user = new User({ email, password: hashedPassword });
-    await user.save();
-    res.status(201).json({ message: "User registration successful !" });
-  } catch (error) {
-    res.status(500).json({ message: "Server error" });
-  }
-});
 
-// Login with Mail - 2 Step
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      return res.status(400).json({ message: "Invalid credentials" });
-    }
-    // 6 Digit code generate
+    // Generate Google Authenticator secret
+    
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const user = new User({
+      email,
+      password: hashedPassword,
+      twoFactorSecret: secret.base32,
+    });
+
+    await user.save();
+
     const mailCode = Math.floor(Math.random() * 999999)
       .toString()
       .padStart(6, "0");
 
-    // Valid for 2 min only
+    // Expiration time (2 minutes)
     const expirationTime = Date.now() + 2 * 60 * 1000;
 
+    // Send a registration confirmation email
+    await transporter.sendMail({
+      to: email,
+      subject: "Welcome to To-do App!",
+      text: `Hello ${email},\n\nThank you for registering on To-do App.\n\nYou can now log in using your credentials and set up Two-Factor Authentication (2FA) for added security.\n\nBest regards,\nThe To-do App Team.Your code is ${mailCode}`,
+    });
+
+    res.status(201).json({
+      message: "User registration successful! A confirmation email has been sent.",
+      
+    });
+  } catch (error) {
+    console.error("Error during registration:", error);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
+
+// **LOGIN WITH MAIL - 2 STEP**
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: "Invalid credentials" });
+    }
+
+    // Generate 6-digit mail code
+    const mailCode = Math.floor(Math.random() * 999999)
+      .toString()
+      .padStart(6, "0");
+
+    // Expiration time (2 minutes)
+    const expirationTime = Date.now() + 2 * 60 * 1000;
+
+    // Send email with code
     await transporter.sendMail({
       to: email,
       subject: "Your Login Code for To-do App",
@@ -66,16 +101,47 @@ router.post("/login", async (req, res) => {
     user.mailCode = mailCode;
     user.mailCodeExpirationTime = expirationTime;
     await user.save();
-    res
-      .status(200)
-      .json({ message: "Please check your email for the verification code" });
+
+    res.status(200).json({
+      message: "Please check your email for the verification code",
+    });
   } catch (error) {
     return res.status(500).json({ message: "Server error" });
   }
 });
 
-// Verify Google Authenticator
-router.post("/verify-2f", async (req, res) => {
+
+// **VERIFY MAIL CODE**
+router.post("/verify-mail-code", async (req, res) => {
+  const { email, mailCode } = req.body;
+  const user = await User.findOne({ email });
+
+  if (!user || user.mailCode !== mailCode) {
+    return res.status(400).json({ message: "Invalid mail code" });
+  }
+
+  if (Date.now() > user.mailCodeExpirationTime) {
+    return res.status(400).json({ message: "Mail code expired" });
+  }
+
+  // Generate Google Authenticator Secret and Save to DB
+  const secret = speakeasy.generateSecret({ name: `To-do-app:${email}` });
+  const otpauthUrl = secret.otpauth_url; // Correct way to get the QR Code URL
+
+  user.mailCode = null;
+  user.mailCodeExpirationTime = null;
+  user.twoFactorSecret = secret.base32; // Save secret to database
+  await user.save();
+
+  res.status(200).json({
+    message: "Mail code validated. Please enter your Google Authenticator code.",
+    otpauthUrl, // Send otpauth URL for frontend QR Code
+  });
+});
+
+
+// **VERIFY 2FA**
+router.post("/verify-2fa", async (req, res) => {
   const { email, token } = req.body;
   try {
     const user = await User.findOne({ email });
@@ -89,30 +155,59 @@ router.post("/verify-2f", async (req, res) => {
       encoding: "base32",
       token,
     });
+
     if (!verified) {
       return res.status(400).json({ message: "Invalid 2FA code" });
     }
-    // Generate JWT token after verification
+
+    // Generate JWT token after successful 2FA
     const jwtToken = jwt.sign({ userId: user._id }, process.env.JWT_SECRET, {
       expiresIn: "2h",
     });
-    res.status(200).json({ message: "Login successful", token: jwtToken });
+
+    res.cookie("auth_token", jwtToken, {
+      httpOnly: true, // Prevents JavaScript access
+      secure: process.env.NODE_ENV === "production", // Secure in production
+      maxAge: 2 * 60 * 60 * 1000, // 2 hours
+    });
+    
+
+    res.status(200).json({ message: "Login successful" });
   } catch (error) {
     res.status(500).json({ message: "Server error" });
   }
 });
 
-// Google OAuth Login
+// CHECK USER
+router.get("/me", (req, res) => {
+  console.log("Cookies Received:", req.cookies); // Debugging
+  const token = req.cookies.auth_token;
+  if (!token) {
+    return res.status(401).json({ message: "Not logged in" });
+  }
+  try {
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    res.status(200).json({ message: "User authenticated", userId: decoded.userId });
+  } catch (error) {
+    res.status(401).json({ message: "Invalid token" });
+  }
+});
+
+
+
+
+
+// **Google OAuth Login**
 router.get("/google", googleAuth);
 
-// Google OAuth Callback
+// **Google OAuth Callback**
 router.get(
   "/google/callback",
   passport.authenticate("google", { failureRedirect: "/login", session: true }),
   googleAuthCallback
 );
 
-// Logout
-router.get('/logout', logoutUser);
+// **Logout**
+router.get("/logout", logoutUser);
 
 module.exports = router;

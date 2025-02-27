@@ -1,35 +1,43 @@
+
 import { useForm } from "react-hook-form";
 import axios from "axios";
 import { Input } from "../../components/ui/input";
 import { Button } from "../../components/ui/button";
-import { toast } from "sonner"
+import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
-const Login = ({ onSuccess }) => {
-    const navigate = useNavigate();
+
+const Login = () => {
+  const navigate = useNavigate();
+
   const {
     register,
     handleSubmit,
     formState: { errors, isSubmitting },
   } = useForm();
+  
 
+  
   const onSubmit = async (data) => {
     try {
       const response = await axios.post("http://localhost:4000/api/auth/login", {
         email: data.email,
         password: data.password,
       });
-      console.log("Login successful !", response.data);
-      toast.success(response?.data.message || 'Login Successful')
+      console.log("Login email code sent", response.data);
+      toast.success(response?.data.message || "Check your email for the code");
+      
+      // After login, redirect to the mail verification page
+      navigate("/verify-mail", { state: { email: data.email } });
     } catch (error) {
       console.error("Login error:", error.response?.data || error);
-      toast.error(error.response?.data.message || 'Please try again later');
+      toast.error(error.response?.data.message || "Please try again later");
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-      <div className="p-8  rounded shadow">
+      <div className="p-8 rounded shadow">
         <h4 className="text-2xl font-medium text-center mb-4">Login</h4>
         <form
           onSubmit={handleSubmit(onSubmit)}
@@ -61,7 +69,7 @@ const Login = ({ onSuccess }) => {
               className="w-full md:w-[400px] lg:w-[450px]"
               id="password"
               type="password"
-              autoComplete='true'
+              autoComplete="true"
               placeholder="Enter a secure password"
               {...register("password", {
                 required: "Password is required",
@@ -71,11 +79,10 @@ const Login = ({ onSuccess }) => {
                 },
               })}
             />
-            {errors.password && (
-              <p className="error">{errors.password.message}</p>
-            )}
+            {errors.password && <p className="error">{errors.password.message}</p>}
           </div>
-        
+          
+          {/* Submit Button */}
           <Button type="submit" disabled={isSubmitting}>
             {isSubmitting ? "Logging in..." : "Login"}
           </Button>

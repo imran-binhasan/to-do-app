@@ -1,14 +1,20 @@
 import { createBrowserRouter } from "react-router-dom";
-import Main from "../layouts/Main";
+import MainLayout from "../layouts/MainLayout";
 import Home from "../pages/Home/Home";
 import Login from "../pages/Login/Login";
-import Dashboard from "../layouts/Dashboard";
 import Register from "../pages/Register/Register";
+import VerifyMail from "../pages/Auth/VerifyMail";
+import Verify2FA from "../pages/Auth/Verify2FA";
+import DashboardLayout from "../layouts/DashboardLayout";
+import Dashboard from "../pages/Dashboard/Dashboard";
+import Calendar from "../pages/Dashboard/Calendar";
+import Settings from "../pages/Dashboard/Settings";
+import Tasks from "../pages/Dashboard/Tasks";
 
 const Router = createBrowserRouter([
   {
     path: "/",
-    element: <Main />,
+    element: <MainLayout />,
     children: [
       {
         path: "/",
@@ -22,11 +28,37 @@ const Router = createBrowserRouter([
         path: "/register",
         element: <Register />,
       },
+      {
+        path: "/verify-mail",
+        element: <VerifyMail />, // Used in both register & login
+      },
+      {
+        path: "/verify-2fa",
+        element: <Verify2FA />, // Used in both register & login
+      },
     ],
   },
   {
     path: "/dashboard",
-    element: <Dashboard />,
+    element: <DashboardLayout />,
+    children: [
+      {
+        path: "",
+        element: <Dashboard />,
+      },
+      {
+        path: "tasks",
+        element: <Tasks/>,
+      },
+      {
+        path: "calendar",
+        element: <Calendar />,
+      },
+      {
+        path: "settings",
+        element: <Settings />,
+      },
+    ],
   },
 ]);
 

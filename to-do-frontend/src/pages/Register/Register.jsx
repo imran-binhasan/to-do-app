@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
 
 const Register = () => {
-  const navigate = useNavigate()
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -14,33 +14,31 @@ const Register = () => {
     formState: { errors, isSubmitting },
   } = useForm();
   const password = watch("password", "");
+
   const onSubmit = async (data) => {
     try {
-      const response = await axios.post(
-        "http://localhost:4000/api/auth/register",
-        {
-          email: data.email,
-          password: data.password,
-        }
-      );
-      console.log("Registration successful !", response.data);
-      toast.success(response?.data.message || 'Registration Successful')
-      navigate('/')
+      // Temporarily store email and password in localStorage
+      localStorage.setItem("email", data.email);
+      localStorage.setItem("password", data.password);
+
+      const response = await axios.post("http://localhost:4000/api/auth/register", {
+        email: data.email,
+        password: data.password,
+      });
+      console.log(response.data);
+
+      toast.success("Registration successful! Please verify your email.");
+      navigate("/verify-mail", { state: { email: data.email } });
     } catch (error) {
-      console.error("Registration error:", error.response?.data || error);
-      toast.error(error.response?.data.message || 'Please try again later');
+      toast.error(error.response?.data.message || "Registration failed");
     }
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[60vh] p-4">
-      <div className="p-8  rounded shadow">
+      <div className="p-8 rounded shadow">
         <h4 className="text-2xl font-medium text-center mb-4">Register</h4>
-        <form
-          onSubmit={handleSubmit(onSubmit)}
-          className="w-full max-w-md space-y-4"
-        >
-          {/* Email Field */}
+        <form onSubmit={handleSubmit(onSubmit)} className="w-full max-w-md space-y-4">
           <div>
             <label htmlFor="email">Email:</label>
             <Input
@@ -59,7 +57,6 @@ const Register = () => {
             {errors.email && <p className="error">{errors.email.message}</p>}
           </div>
 
-          {/* Password Field */}
           <div>
             <label htmlFor="password">Password:</label>
             <Input
@@ -76,12 +73,9 @@ const Register = () => {
                 },
               })}
             />
-            {errors.password && (
-              <p className="error">{errors.password.message}</p>
-            )}
+            {errors.password && <p className="error">{errors.password.message}</p>}
           </div>
 
-          {/* Confirm Password Field */}
           <div>
             <label htmlFor="confirmPassword">Confirm Password:</label>
             <Input
@@ -92,13 +86,10 @@ const Register = () => {
               placeholder="Re-enter your password"
               {...register("confirmPassword", {
                 required: "Please confirm your password",
-                validate: (value) =>
-                  value === password || "Passwords do not match",
+                validate: (value) => value === password || "Passwords do not match",
               })}
             />
-            {errors.confirmPassword && (
-              <p className="error">{errors.confirmPassword.message}</p>
-            )}
+            {errors.confirmPassword && <p className="error">{errors.confirmPassword.message}</p>}
           </div>
 
           <Button type="submit" disabled={isSubmitting}>
