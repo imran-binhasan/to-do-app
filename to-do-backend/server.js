@@ -8,6 +8,7 @@ dotenv.config();
 const session = require('express-session');
 const passport = require('passport');
 const authRoutes = require('./routes/authRoutes');
+const taskRoutes = require('./routes/taskRoutes')
 const protectedRoutes = require('./routes/protectedRoutes')
 require('./config/passport')
 
@@ -56,7 +57,7 @@ const startServer = async () => {
 
     app.use('/api/auth', authRoutes);
     app.use('/api/protected', protectedRoutes);
-
+    app.use('/api/task', taskRoutes)
 
 
 
