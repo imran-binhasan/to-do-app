@@ -11,6 +11,22 @@ export const fetchUser = createAsyncThunk("user/fetchUser", async (_, { rejectWi
   }
 });
 
+export const logoutUser = createAsyncThunk(
+  "user/logoutUser", 
+  async (_, { rejectWithValue }) => {
+    try {
+      // Make an API call to logout and clear cookies
+      await axios.get("http://localhost:4000/api/auth/logout", { withCredentials: true });
+      
+      // If the backend is successful, return null or empty response
+      return null;
+    } catch (error) {
+      return rejectWithValue(error.response?.data?.message || "Failed to logout");
+    }
+  }
+);
+
+
 const userSlice = createSlice({
   name: "user",
   initialState: {
@@ -37,10 +53,14 @@ const userSlice = createSlice({
         state.loading = false;
         state.error = action.payload;
         state.user = null;
+      })
+      .addCase(logoutUser.fulfilled, (state) => {
+        state.user = null; // Clear user state after logout
       });
-  },
+  }
+  
 });
 
 // ✅ Export with correct name
-export const { logoutUser } = userSlice.actions;
+
 export default userSlice.reducer;

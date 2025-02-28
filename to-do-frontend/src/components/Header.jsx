@@ -7,7 +7,7 @@ import { fetchUser, logoutUser } from "../slices/useSlice"; // ✅ Correct impor
 const Header = () => {
   const dispatch = useDispatch();
   const { user, loading } = useSelector((state) => state.user);
-
+  console.log(user)
   useEffect(() => {
     dispatch(fetchUser()); // Fetch user on mount
   }, [dispatch]);
@@ -35,7 +35,7 @@ const Header = () => {
           ) : user ? (
             // If user is logged in
             <div className="flex items-center gap-3">
-              <p className="text-gray-700">Welcome, {user.email}</p>
+              <p className="text-gray-700">Welcome !</p>
               <Button
                 variant="destructive"
                 className="text-lg"

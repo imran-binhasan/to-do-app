@@ -57,8 +57,7 @@ const startServer = async () => {
 
     app.use('/api/auth', authRoutes);
     app.use('/api/protected', protectedRoutes);
-    app.use('/api/task', taskRoutes)
-
+    app.use('/api/tasks', taskRoutes)
 
 
 

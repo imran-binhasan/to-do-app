@@ -10,6 +10,7 @@ const {
   logoutUser,
 } = require("../controllers/authController");
 const passport = require("passport");
+const { isAuthenticated } = require("../middleware/authMiddleware");
 const router = express.Router();
 
 // Nodemailer transporter setup
@@ -23,22 +24,22 @@ const transporter = nodemailer.createTransport({
 
 
 // **REGISTER USER**
+// **REGISTER USER**
 router.post("/register", async (req, res) => {
   const { email, password } = req.body;
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "User already exists" });
+      return res.status(400).json({ message: "User already exists, Please login !" });
     }
 
-    // Generate Google Authenticator secret
-    
+    // Hash the password
     const hashedPassword = await bcrypt.hash(password, 12);
 
+    // Create user without Google Authenticator secret at this point
     const user = new User({
       email,
       password: hashedPassword,
-      twoFactorSecret: secret.base32,
     });
 
     await user.save();
@@ -47,25 +48,30 @@ router.post("/register", async (req, res) => {
       .toString()
       .padStart(6, "0");
 
-    // Expiration time (2 minutes)
+    // Expiration time for the mail code (2 minutes)
     const expirationTime = Date.now() + 2 * 60 * 1000;
 
     // Send a registration confirmation email
     await transporter.sendMail({
       to: email,
       subject: "Welcome to To-do App!",
-      text: `Hello ${email},\n\nThank you for registering on To-do App.\n\nYou can now log in using your credentials and set up Two-Factor Authentication (2FA) for added security.\n\nBest regards,\nThe To-do App Team.Your code is ${mailCode}`,
+      text: `Hello ${email},\n\nThank you for registering on To-do App.\n\nYou can now log in using your credentials and set up Two-Factor Authentication (2FA) for added security.\n\nBest regards,\nThe To-do App Team. Your code is ${mailCode}`,
     });
+
+    // Save the mail code to user
+    user.mailCode = mailCode;
+    user.mailCodeExpirationTime = expirationTime;
+    await user.save();
 
     res.status(201).json({
       message: "User registration successful! A confirmation email has been sent.",
-      
     });
   } catch (error) {
     console.error("Error during registration:", error);
     res.status(500).json({ message: "Server error" });
   }
 });
+
 
 
 // **LOGIN WITH MAIL - 2 STEP**
@@ -165,10 +171,11 @@ router.post("/verify-2fa", async (req, res) => {
       expiresIn: "2h",
     });
 
-    res.cookie("auth_token", jwtToken, {
-      httpOnly: true, // Prevents JavaScript access
-      secure: process.env.NODE_ENV === "production", // Secure in production
-      maxAge: 2 * 60 * 60 * 1000, // 2 hours
+    res.cookie('auth_token', jwtToken, {
+      httpOnly: true, // Prevents JS access
+      secure: process.env.NODE_ENV === 'production', // Secure flag for production
+      maxAge: 2 * 60 * 60 * 1000, // Expiry time (2 hours)
+      path: '/', // Set the correct path
     });
     
 
@@ -179,15 +186,35 @@ router.post("/verify-2fa", async (req, res) => {
 });
 
 // CHECK USER
-router.get("/me", (req, res) => {
+// CHECK USER
+router.get("/me", async (req, res) => {
   console.log("Cookies Received:", req.cookies); // Debugging
+  
   const token = req.cookies.auth_token;
   if (!token) {
     return res.status(401).json({ message: "Not logged in" });
   }
+  
   try {
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    res.status(200).json({ message: "User authenticated", userId: decoded.userId });
+    
+    // Find the user to get their complete profile including Google info
+    const user = await User.findById(decoded.userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Return user data including Google connection status
+    res.status(200).json({
+      message: "User authenticated",
+      userId: decoded.userId,
+      email: user.email,
+      google: {
+        connected: !!user.google.connected,
+        email: user.google.email || null
+      },
+      isTwoFactorEnabled: !!user.isTwoFactorEnabled
+    });
   } catch (error) {
     res.status(401).json({ message: "Invalid token" });
   }
@@ -198,7 +225,7 @@ router.get("/me", (req, res) => {
 
 
 // **Google OAuth Login**
-router.get("/google", googleAuth);
+router.get("/google",isAuthenticated, googleAuth);
 
 // **Google OAuth Callback**
 router.get(
