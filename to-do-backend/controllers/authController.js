@@ -32,7 +32,7 @@ const googleAuthCallback = async (req, res) => {
     });
   } catch (error) {
     console.error("Error in Google callback:", error);
-    res.redirect('http://localhost:5173/settings?error=google_connection_failed');
+    res.redirect('https://to-do-task-00.netlify.app/settings?error=google_connection_failed');
   }
 };
 
