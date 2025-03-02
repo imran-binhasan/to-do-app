@@ -10,7 +10,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "http://localhost:4000/api/auth/google/callback",
+      callbackURL: "https://to-do-backend-liard.vercel.app/api/auth/google/callback",
       passReqToCallback: true, // ✅ Ensures we can access req in callback
     },
     async (req, accessToken, refreshToken, profile, done) => {

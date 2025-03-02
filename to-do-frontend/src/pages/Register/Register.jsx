@@ -21,7 +21,7 @@ const Register = () => {
       localStorage.setItem("email", data.email);
       localStorage.setItem("password", data.password);
 
-      const response = await axios.post("http://localhost:4000/api/auth/register", {
+      const response = await axios.post("https://to-do-backend-liard.vercel.app/api/auth/register", {
         email: data.email,
         password: data.password,
       });

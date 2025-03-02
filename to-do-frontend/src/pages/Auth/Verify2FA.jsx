@@ -21,7 +21,7 @@ console.log(otpauthUrl,location)
   const onSubmit = async (data) => {
     try {
       await axios.post(
-        "http://localhost:4000/api/auth/verify-2fa",
+        "https://to-do-backend-liard.vercel.app/api/auth/verify-2fa",
         { email, token: data.token },
         { withCredentials: true } // ✅ Ensures cookies are sent
       );

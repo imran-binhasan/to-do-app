@@ -1,35 +1,37 @@
 const express = require("express");
 const router = express.Router();
 const Task = require("../models/Task");
-const { isAuthenticated } = require("../middleware/authMiddleware"); // Ensure user is logged in
+const { isAuthenticated } = require("../middleware/authMiddleware");
+const { addTaskToGoogleCalendar } = require("../utils/googleCalender"); // Ensure user is logged in
+const User = require('../models/User');
 
 
-
-router.post('/tasks', isAuthenticated, async (req, res) => {
+router.post("/", isAuthenticated, async (req, res) => {
   try {
-    const { title, description, dueDate, priority } = req.body;
-    
+    console.log('ok')
+    const { title, description, dueDate, priority,status } = req.body;
     // Create task in your database
+    const userData = await User.findById(req.user.userId);
     const newTask = new Task({
-      userId: req.user.userId,
+      userId: userData._id, // Use _id from the deserialized user object
       title,
       description,
       dueDate,
       priority,
-      status: 'pending'
+      status
     });
-    
+
     await newTask.save();
+    console.log('ok3')
+    // Retrieve full user details (if needed) to access Google connection info
+
     
-    // Find the full user to get Google info
-    const user = await User.findById(req.user.userId);
-    
-    // If user has Google connected, create calendar event
-    if (user.google.connected) {
-      const calendarResult = await createCalendarEvent(user, newTask);
+    // If the user has Google connected, create a calendar event
+    if (userData.google.connected) {
+      const calendarResult = await addTaskToGoogleCalendar(userData, newTask);
       
-      // If calendar event was created, store the reference
-      if (calendarResult.success) {
+      // If the calendar event was successfully created, store the reference in the task
+      if (calendarResult && calendarResult.success) {
         newTask.googleCalendarEventId = calendarResult.eventId;
         newTask.googleCalendarLink = calendarResult.htmlLink;
         await newTask.save();
@@ -37,12 +39,12 @@ router.post('/tasks', isAuthenticated, async (req, res) => {
     }
     
     res.status(201).json({ 
-      message: 'Task created successfully', 
+      message: "Task created successfully", 
       task: newTask 
     });
   } catch (error) {
-    console.error('Error creating task:', error);
-    res.status(500).json({ message: 'Server error' });
+    console.error("Error creating task:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 });
 
@@ -51,7 +53,6 @@ router.get("/", isAuthenticated, async (req, res) => {
   try {
     console.log('inside getting')
     const tasks = await Task.find({ userId: req.user.userId }).sort({ createdAt: -1 });
-    console.log(tasks)
     res.json(tasks);
   } catch (error) {
     res.status(500).json({ message: "Error fetching tasks" });

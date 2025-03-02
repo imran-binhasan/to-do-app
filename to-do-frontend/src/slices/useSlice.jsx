@@ -4,7 +4,7 @@ import axios from "axios";
 // Async thunk to fetch user data
 export const fetchUser = createAsyncThunk("user/fetchUser", async (_, { rejectWithValue }) => {
   try {
-    const response = await axios.get("http://localhost:4000/api/auth/me", { withCredentials: true });
+    const response = await axios.get("https://to-do-backend-liard.vercel.app/api/auth/me", { withCredentials: true });
     return response.data;
   } catch (error) {
     return rejectWithValue(error.response?.data?.message || "Failed to fetch user");
@@ -16,7 +16,7 @@ export const logoutUser = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       // Make an API call to logout and clear cookies
-      await axios.get("http://localhost:4000/api/auth/logout", { withCredentials: true });
+      await axios.get("https://to-do-backend-liard.vercel.app/api/auth/logout", { withCredentials: true });
       
       // If the backend is successful, return null or empty response
       return null;

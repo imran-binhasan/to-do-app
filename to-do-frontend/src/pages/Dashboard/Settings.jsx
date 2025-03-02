@@ -11,7 +11,7 @@ const Settings = () => {
       try {
         setLoading(true);
         const response = await axios.get(
-          `http://localhost:4000/api/auth/me`,
+          `https://to-do-backend-liard.vercel.app/api/auth/me`,
           { withCredentials: true }
         );
         console.log(response)

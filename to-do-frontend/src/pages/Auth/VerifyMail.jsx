@@ -19,7 +19,7 @@ const VerifyMail = () => {
 
   const onSubmit = async (data) => {
     try {
-      const response = await axios.post("http://localhost:4000/api/auth/verify-mail-code", {
+      const response = await axios.post("https://to-do-backend-liard.vercel.app/api/auth/verify-mail-code", {
         email,
         mailCode: data.code,
       });
